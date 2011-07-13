@@ -94,14 +94,14 @@ HRESULT CSkeletalViewerApp::Nui_Init()
         MessageBoxResource( m_hWnd,IDS_ERROR_D3DCREATE,MB_OK | MB_ICONHAND);
         return hr;
     }
-
+	
     hr = m_DrawDepth.SetVideoType( 320, 240, 320 * 4 );
     if( FAILED( hr ) )
     {
         MessageBoxResource( m_hWnd,IDS_ERROR_D3DVIDEOTYPE,MB_OK | MB_ICONHAND);
         return hr;
     }
-
+	
     hr = m_DrawVideo.CreateDevice( GetDlgItem( m_hWnd, IDC_VIDEOVIEW ) );
     if( FAILED( hr ) )
     {
@@ -161,22 +161,21 @@ HRESULT CSkeletalViewerApp::Nui_Init()
     m_hEvNuiProcessStop=CreateEvent(NULL,FALSE,FALSE,NULL);
     m_hThNuiProcess=CreateThread(NULL,0,Nui_ProcessThread,this,0,NULL);
 	imgNum = 1;
-	numImages = 24;
 	normalX = 0.0;
-	gotPerson = 0;
-	personLeft = -1;
-	personRight = -1;
+	person.present = 0;
+	person.left = -1;
+	person.right = -1;
 	//curImage = cvCreateImage(cvSize(1280,1024),8,3);
-	cvNamedWindow("image", CV_WINDOW_AUTOSIZE);
-	*images = new IplImage[24];
+	cvNamedWindow("image", CV_WINDOW_FULLSCREEN);
+	*images = new IplImage[numImages];
 	for(int i = 0; i < numImages; i++){
 		images[i] = cvCreateImage(cvSize(1280,1024),8,3);
-		sprintf(imagePath,"..\\images\\%d.png", i+1);
+		sprintf(imagePath,"..\\images1\\%d.png", i+1);
 		images[i] = cvLoadImage(imagePath);
 	}
-	
+	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 1);
 	curImage = images[0];
-	changeImage(1);
+	changeImage();
 	cvShowImage("image",curImage);
     return hr;
 }
@@ -373,23 +372,44 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
             for( int x = 0 ; x < 320 ; x++ )
             {
                 RGBQUAD quad = Nui_ShortToQuad_Depth( *pBufferRun );
-				if( gotPerson == 1){
-					if(personLeft == -1)
-						personLeft = x;
-					personRight = x;
+				if( person.present == 1){
+					if(person.left == -1)
+						if(person.top == -1)
+							person.top = y;
+						person.left = x;
+					person.right = x;
+					person.bottom = y;
 				}
                 pBufferRun++;
                 *rgbrun = quad;
                 rgbrun++;
             }
         }
-		if(personLeft != -1){
-			if(personLeft < 20 || personRight < 20)
+		if(person.left != -1){
+			char text[20];
+			//cvRectangle(curImage,cvPoint(0,0),cvPoint(600,200), cvScalar(255,255,255), 30);
+			//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
+			if(abs(person.x()  - 160) > 50)
+				normalX += double(double(person.x()  - 160)/90);
+			sprintf(text, "normalX: %f",normalX);
+			if(abs(normalX) > 1.0)
+				changeImage();
+			/*
+			if(person.left < 80 || person.right < 80){
+				normalX -= 0.2;
 				changeImage(-1);
-			if(personRight > 300 || personLeft > 300)
+			}
+			if(person.right > 270 || person.left > 270){
+				normalX += 0.2;
 				changeImage(1);
+			}
+			*/
 		}
-		gotPerson = -1;
+		person.present = -1;
+		person.left = -1;
+		person.right = -1;
+		person.top = -1;
+		person.bottom = -1;
 
         m_DrawDepth.DrawFrame( (BYTE*) m_rgbWk );
     }
@@ -432,18 +452,28 @@ void CSkeletalViewerApp::Nui_DrawSkeletonSegment( NUI_SKELETON_DATA * pSkel, int
     va_end(vl);
 }
 
-void CSkeletalViewerApp::changeImage(int dir){
-	if(dir + imgNum > numImages){
-		imgNum = 0;
+void CSkeletalViewerApp::changeImage(){
+	if(time(&curTime) - imageTimer > 0.05){
+		time(&imageTimer);
+		int dir = int(abs(normalX)/normalX);
+		if( abs(normalX) >= 1 ){
+			if(dir + imgNum > numImages){
+				imgNum = 0;
+			}
+			else if(dir + imgNum < 1){
+				imgNum = numImages;
+			}
+			else
+				imgNum += dir;
+			normalX = 0.0;
+			curImage = images[imgNum];
+			char text[20];
+			sprintf(text, "normalX: %f",normalX);
+			//cvRectangle(curImage,cvPoint(0,50),cvPoint(600,150), cvScalar(255,255,255), 30);
+			//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
+			cvShowImage("image", curImage);
+		}
 	}
-	else if(dir + imgNum < 1){
-		imgNum = numImages;
-	}
-	else{
-		imgNum += dir;
-	}
-	curImage = images[imgNum];
-	cvShowImage("image", curImage);
 }
 
 void CSkeletalViewerApp::Nui_DrawSkeleton( bool bBlank, NUI_SKELETON_DATA * pSkel, HWND hWnd, int WhichSkeletonColor )
@@ -528,7 +558,6 @@ void CSkeletalViewerApp::Nui_DoDoubleBuffer(HWND hWnd,HDC hDC)
 
 void CSkeletalViewerApp::Nui_GotSkeletonAlert( )
 {
-	changeImage(1);
     NUI_SKELETON_FRAME SkeletonFrame;
 
     HRESULT hr = NuiSkeletonGetNextFrame( 0, &SkeletonFrame );
@@ -584,52 +613,54 @@ RGBQUAD CSkeletalViewerApp::Nui_ShortToQuad_Depth( USHORT s )
 
     RGBQUAD q;
     q.rgbRed = q.rgbBlue = q.rgbGreen = 0;
-
+	person.present = 0;
     switch( Player )
     {
     case 0:
         q.rgbRed = l / 2;
         q.rgbBlue = l / 2;
         q.rgbGreen = l / 2;
-		gotPerson = 0;
+		person.present = 0;
         break;
     case 1:
         q.rgbRed = l;
-		gotPerson = 1;
+		person.present = 1;
         break;
     case 2:
         q.rgbGreen = l;
-		gotPerson = 1;
+		person.present = 1;
         break;
     case 3:
         q.rgbRed = l / 4;
         q.rgbGreen = l;
         q.rgbBlue = l;
-		gotPerson = 1;
+		person.present = 1;
         break;
     case 4:
         q.rgbRed = l;
         q.rgbGreen = l;
         q.rgbBlue = l / 4;
-		gotPerson = 1;
+		person.present = 1;
         break;
     case 5:
         q.rgbRed = l;
         q.rgbGreen = l / 4;
         q.rgbBlue = l;
-		gotPerson = 1;
+		person.present = 1;
         break;
     case 6:
         q.rgbRed = l / 2;
         q.rgbGreen = l / 2;
         q.rgbBlue = l;
-		gotPerson = 1;
+		person.present = 1;
         break;
     case 7:
         q.rgbRed = 255 - ( l / 2 );
         q.rgbGreen = 255 - ( l / 2 );
         q.rgbBlue = 255 - ( l / 2 );
-		gotPerson = 1;
+		person.present = 0;
     }
+	if(person.present == 1)
+		person.distance = RealDepth;
     return q;
 }

@@ -57,8 +57,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPTSTR lpCmdL
 	g_hWndApp=CreateDialogParam(g_hInst,MAKEINTRESOURCE(IDD_APP),NULL,(DLGPROC) CSkeletalViewerApp::WndProc,NULL);
 
 	// Show window
-	ShowWindow(g_hWndApp,nCmdShow);
-	UpdateWindow(g_hWndApp);
+	//ShowWindow(g_hWndApp,nCmdShow);
+	//UpdateWindow(g_hWndApp);
 
 	// Main message loop:
 	while(GetMessage(&msg,NULL,0,0)) 

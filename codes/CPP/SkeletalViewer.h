@@ -33,13 +33,59 @@ public:
     void                    Nui_DoDoubleBuffer(HWND hWnd,HDC hDC);
     void                    Nui_DrawSkeleton( bool bBlank, NUI_SKELETON_DATA * pSkel, HWND hWnd, int WhichSkeletonColor );
     void                    Nui_DrawSkeletonSegment( NUI_SKELETON_DATA * pSkel, int numJoints, ... );
-	void					changeImage(int dir);
+	void					changeImage();
 
     RGBQUAD                 Nui_ShortToQuad_Depth( USHORT s );
 
     static LONG CALLBACK    WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     HWND m_hWnd;
+
+	struct PERSON{
+		int left;
+		int right;
+		int top;
+		int bottom;
+		int _x;
+		int _y;
+		int _width;
+		int _height;
+		int _area;
+		float distance;
+		int present;
+
+		int x(int x=0){
+			if(x)
+				_x = x;
+			else
+				_x = ( left + right )/2;
+			return _x;
+		};
+		int y(int y=0){
+			if(y)
+				_y = y;
+			else
+				_y = ( top + bottom)/2;
+			return _y;
+		};
+		int width(int width=0){
+			if(width)
+				_width = width;
+			else
+				_width = abs(left-right);
+			return _width;
+		};
+		int height(int height=0){
+			if(height)
+				_height = height;
+			else
+				_height = abs(top-bottom);
+			return _height;
+		};
+		int area(){
+			return 0;
+		};
+	} Person;
 
 private:
     static DWORD WINAPI     Nui_ProcessThread(LPVOID pParam);
@@ -73,13 +119,14 @@ private:
     int           m_LastFramesTotal;
 	int imgNum;
 	char imagePath[20];
-	int numImages;
+	static const int numImages = 34;
 	double normalX;
 	int gotPerson;
-	int personLeft;
-	int personRight;
-	IplImage* images[24];
+	PERSON person;
+	IplImage* images[numImages];
 	IplImage* curImage;
+	time_t imageTimer, curTime;
+	CvFont font;
 };
 
 int MessageBoxResource(HWND hwnd,UINT nID,UINT nType);

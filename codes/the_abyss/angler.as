@@ -1,0 +1,1 @@
+﻿package  {		public class angler extends Animal {		public function angler() {			super();		}	}	}
