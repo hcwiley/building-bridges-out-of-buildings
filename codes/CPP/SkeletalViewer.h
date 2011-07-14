@@ -34,6 +34,7 @@ public:
     void                    Nui_DrawSkeleton( bool bBlank, NUI_SKELETON_DATA * pSkel, HWND hWnd, int WhichSkeletonColor );
     void                    Nui_DrawSkeletonSegment( NUI_SKELETON_DATA * pSkel, int numJoints, ... );
 	void					changeImage();
+	void					myInit();
 
     RGBQUAD                 Nui_ShortToQuad_Depth( USHORT s );
 
@@ -119,11 +120,15 @@ private:
     int           m_LastFramesTotal;
 	int imgNum;
 	char imagePath[20];
-	static const int numImages = 34;
+	static const int numImages = 50;
 	double normalX;
 	int gotPerson;
 	PERSON person;
-	IplImage* images[numImages];
+	IplImage* images1[numImages];
+	IplImage* images2[numImages];
+	IplImage* images3[numImages];
+	IplImage* images4[numImages];
+	char text[30];
 	IplImage* curImage;
 	time_t imageTimer, curTime;
 	CvFont font;

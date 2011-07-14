@@ -160,26 +160,10 @@ HRESULT CSkeletalViewerApp::Nui_Init()
     // Start the Nui processing thread
     m_hEvNuiProcessStop=CreateEvent(NULL,FALSE,FALSE,NULL);
     m_hThNuiProcess=CreateThread(NULL,0,Nui_ProcessThread,this,0,NULL);
-	imgNum = 1;
-	normalX = 0.0;
-	person.present = 0;
-	person.left = -1;
-	person.right = -1;
-	//curImage = cvCreateImage(cvSize(1280,1024),8,3);
-	cvNamedWindow("image", CV_WINDOW_FULLSCREEN);
-	*images = new IplImage[numImages];
-	for(int i = 0; i < numImages; i++){
-		images[i] = cvCreateImage(cvSize(1280,1024),8,3);
-		sprintf(imagePath,"..\\images1\\%d.png", i+1);
-		images[i] = cvLoadImage(imagePath);
-	}
-	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 1);
-	curImage = images[0];
-	changeImage();
-	cvShowImage("image",curImage);
+
+	myInit();
     return hr;
 }
-
 
 
 void CSkeletalViewerApp::Nui_UnInit( )
@@ -234,11 +218,44 @@ void CSkeletalViewerApp::Nui_UnInit( )
     m_DrawVideo.DestroyDevice( );
 	cvDestroyWindow("image");
 	for(int i =0; i < numImages; i++){
-		cvReleaseImage(&images[i]);
+		cvReleaseImage(&images1[i]);
+		cvReleaseImage(&images2[i]);
 	}
 }
 
-
+void CSkeletalViewerApp::myInit(){
+	imgNum = 1;
+	normalX = 0.0;
+	person.present = 0;
+	person.left = -1;
+	person.right = -1;
+	//curImage = cvCreateImage(cvSize(1280,1024),8,3);
+	cvNamedWindow("image", CV_WINDOW_FULLSCREEN | CV_GUI_NORMAL);
+	*images1 = new IplImage[numImages];
+	*images2 = new IplImage[numImages];
+	for(int i = 0; i < numImages; i++){
+		//camera 1
+		images1[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera-4\\%d.png", i+1);
+		images1[i] = cvLoadImage(imagePath);
+		//camera 2
+		images2[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera-3\\%d.png", i+1);
+		images2[i] = cvLoadImage(imagePath);
+		//camera 3
+		images3[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera-2\\%d.png", i+1);
+		images3[i] = cvLoadImage(imagePath);
+		//camera 4
+		images4[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera-1\\%d.png", i+1);
+		images4[i] = cvLoadImage(imagePath);
+	}
+	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 1);
+	curImage = images1[0];
+	changeImage();
+	cvShowImage("image",curImage);
+}
 
 DWORD WINAPI CSkeletalViewerApp::Nui_ProcessThread(LPVOID pParam)
 {
@@ -386,13 +403,12 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
             }
         }
 		if(person.left != -1){
-			char text[20];
+			//sprintf(text, "distance: %f",person.distance);
 			//cvRectangle(curImage,cvPoint(0,0),cvPoint(600,200), cvScalar(255,255,255), 30);
 			//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
 			if(abs(person.x()  - 160) > 50)
 				normalX += double(double(person.x()  - 160)/90);
-			sprintf(text, "normalX: %f",normalX);
-			if(abs(normalX) > 1.0)
+			//if(abs(normalX) > 1.0)
 				changeImage();
 			/*
 			if(person.left < 80 || person.right < 80){
@@ -410,6 +426,11 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
 		person.right = -1;
 		person.top = -1;
 		person.bottom = -1;
+
+		int c = cvWaitKey(10);
+
+		if(c == 27)
+			cvDestroyWindow("image");
 
         m_DrawDepth.DrawFrame( (BYTE*) m_rgbWk );
     }
@@ -453,26 +474,37 @@ void CSkeletalViewerApp::Nui_DrawSkeletonSegment( NUI_SKELETON_DATA * pSkel, int
 }
 
 void CSkeletalViewerApp::changeImage(){
-	if(time(&curTime) - imageTimer > 0.05){
+	if(time(&curTime) - imageTimer > 0.02){
 		time(&imageTimer);
 		int dir = int(abs(normalX)/normalX);
-		if( abs(normalX) >= 1 ){
-			if(dir + imgNum > numImages){
+		if( abs(normalX) >= 1.0 ){
+			if(dir + imgNum >= numImages){
 				imgNum = 0;
 			}
 			else if(dir + imgNum < 1){
-				imgNum = numImages;
+				imgNum = numImages - 1;
 			}
 			else
 				imgNum += dir;
 			normalX = 0.0;
-			curImage = images[imgNum];
-			char text[20];
-			sprintf(text, "normalX: %f",normalX);
-			//cvRectangle(curImage,cvPoint(0,50),cvPoint(600,150), cvScalar(255,255,255), 30);
-			//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
-			cvShowImage("image", curImage);
 		}
+		sprintf(text, "distance: %f",person.distance);
+		if(person.distance > 2400){
+			curImage = images4[imgNum];
+		}
+		else if(person.distance > 2000){
+			curImage = images3[imgNum];
+		}
+		else if(person.distance > 1800){
+			curImage = images2[imgNum];
+		}
+		else{
+			curImage = images1[imgNum];
+		}
+		//cvRectangle(curImage,cvPoint(0,50),cvPoint(600,150), cvScalar(255,255,255), 30);
+		//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
+		if( curImage )
+			cvShowImage("image", curImage);
 	}
 }
 
