@@ -120,7 +120,7 @@ private:
     int           m_LastFramesTotal;
 	int imgNum;
 	char imagePath[20];
-	static const int numImages = 50;
+	static const int numImages = 5;
 	double normalX;
 	int gotPerson;
 	PERSON person;
@@ -130,8 +130,15 @@ private:
 	IplImage* images4[numImages];
 	char text[30];
 	IplImage* curImage;
+	IplImage* lastImage;
+	IplImage* tmpImg;
+	IplImage* alphaImg;
 	time_t imageTimer, curTime;
 	CvFont font;
+	static const int thresh1 = 1000;
+	static const int thresh2 = 2100;
+	static const int thresh3 = 3200;
+	static const int thresh4 = 3800;
 };
 
 int MessageBoxResource(HWND hwnd,UINT nID,UINT nType);

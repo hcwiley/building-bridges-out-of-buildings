@@ -221,6 +221,10 @@ void CSkeletalViewerApp::Nui_UnInit( )
 		cvReleaseImage(&images1[i]);
 		cvReleaseImage(&images2[i]);
 	}
+	//cvReleaseImage(&tmpImg);
+	cvReleaseImage(&alphaImg);
+	cvReleaseImage(&lastImage);
+	cvReleaseImage(&curImage);
 }
 
 void CSkeletalViewerApp::myInit(){
@@ -229,32 +233,38 @@ void CSkeletalViewerApp::myInit(){
 	person.present = 0;
 	person.left = -1;
 	person.right = -1;
-	//curImage = cvCreateImage(cvSize(1280,1024),8,3);
+	curImage = cvCreateImage(cvSize(1280,1024),8,3);
+	alphaImg = cvCreateImage(cvSize(1280,1024),8,3);
+	lastImage = cvCreateImage(cvSize(1280,1024),8,3);
+	//tmpImg = cvCreateImage(cvSize(1280,1024),8,3);
 	cvNamedWindow("image", CV_WINDOW_FULLSCREEN | CV_GUI_NORMAL);
 	*images1 = new IplImage[numImages];
 	*images2 = new IplImage[numImages];
+	*images3 = new IplImage[numImages];
+	*images4 = new IplImage[numImages];
 	for(int i = 0; i < numImages; i++){
 		//camera 1
-		images1[i] = cvCreateImage(cvSize(1280,1024),8,3);
-		sprintf(imagePath,"..\\camera-4\\%d.png", i+1);
+		//images1[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera4\\%d.jpg", i+1);
 		images1[i] = cvLoadImage(imagePath);
 		//camera 2
-		images2[i] = cvCreateImage(cvSize(1280,1024),8,3);
-		sprintf(imagePath,"..\\camera-3\\%d.png", i+1);
+		//images2[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera3\\%d.jpg", i+1);
 		images2[i] = cvLoadImage(imagePath);
 		//camera 3
-		images3[i] = cvCreateImage(cvSize(1280,1024),8,3);
-		sprintf(imagePath,"..\\camera-2\\%d.png", i+1);
+		//images3[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera2\\%d.jpg", i+1);
 		images3[i] = cvLoadImage(imagePath);
 		//camera 4
-		images4[i] = cvCreateImage(cvSize(1280,1024),8,3);
-		sprintf(imagePath,"..\\camera-1\\%d.png", i+1);
+		//images4[i] = cvCreateImage(cvSize(1280,1024),8,3);
+		sprintf(imagePath,"..\\camera1\\%d.jpg", i+1);
 		images4[i] = cvLoadImage(imagePath);
 	}
 	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 1);
-	curImage = images1[0];
-	changeImage();
+	curImage = cvCloneImage(images1[0]);
 	cvShowImage("image",curImage);
+	//curImage = images1[0];
+	changeImage();
 }
 
 DWORD WINAPI CSkeletalViewerApp::Nui_ProcessThread(LPVOID pParam)
@@ -390,10 +400,11 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
             {
                 RGBQUAD quad = Nui_ShortToQuad_Depth( *pBufferRun );
 				if( person.present == 1){
-					if(person.left == -1)
+					if(person.left == -1){
 						if(person.top == -1)
 							person.top = y;
 						person.left = x;
+					}
 					person.right = x;
 					person.bottom = y;
 				}
@@ -406,9 +417,8 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
 			//sprintf(text, "distance: %f",person.distance);
 			//cvRectangle(curImage,cvPoint(0,0),cvPoint(600,200), cvScalar(255,255,255), 30);
 			//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
-			if(abs(person.x()  - 160) > 50)
+			if(abs(person.x()  - 160) > 40)
 				normalX += double(double(person.x()  - 160)/90);
-			//if(abs(normalX) > 1.0)
 				changeImage();
 			/*
 			if(person.left < 80 || person.right < 80){
@@ -474,10 +484,17 @@ void CSkeletalViewerApp::Nui_DrawSkeletonSegment( NUI_SKELETON_DATA * pSkel, int
 }
 
 void CSkeletalViewerApp::changeImage(){
-	if(time(&curTime) - imageTimer > 0.02){
+	if(time(&curTime) - imageTimer > 0.002){
+		bool moved = false;
+		cvReleaseImage(&lastImage);
+		lastImage = cvCloneImage(curImage);
 		time(&imageTimer);
-		int dir = int(abs(normalX)/normalX);
+		int dir = 0;
+		int loop = 8;
+		double zoom = 0.1;
 		if( abs(normalX) >= 1.0 ){
+			loop = 5;
+			dir = -1*int(abs(normalX)/normalX);
 			if(dir + imgNum >= numImages){
 				imgNum = 0;
 			}
@@ -489,22 +506,65 @@ void CSkeletalViewerApp::changeImage(){
 			normalX = 0.0;
 		}
 		sprintf(text, "distance: %f",person.distance);
-		if(person.distance > 2400){
-			curImage = images4[imgNum];
+		float normalD = 0.0;
+		if(person.distance > thresh4){
+			moved = true;
+			cvReleaseImage(&curImage);
+			curImage = cvCloneImage(images4[imgNum]);
+			//curImage = images4[imgNum];
 		}
-		else if(person.distance > 2000){
-			curImage = images3[imgNum];
+		else if(person.distance > thresh3){
+			moved = true;
+			normalD = (person.distance - thresh3) / thresh3;
+			zoom = 0.75;
+			cvReleaseImage(&curImage);
+			curImage = cvCloneImage(images3[imgNum]);
+			//curImage = images3[imgNum];
 		}
-		else if(person.distance > 1800){
-			curImage = images2[imgNum];
+		else if(person.distance > thresh2){
+			moved = true;
+			normalD = (person.distance - thresh2) / thresh2;
+			zoom = 0.35;
+			cvReleaseImage(&curImage);
+			curImage = cvCloneImage(images2[imgNum]);
+			//curImage = images2[imgNum];
 		}
 		else{
-			curImage = images1[imgNum];
+			moved = true;
+			normalD = (person.distance - thresh1) / thresh1;
+			if(normalD < 0)
+				normalD = 0.0;
+			cvReleaseImage(&curImage);
+			curImage = cvCloneImage(images1[imgNum]);
+			//curImage = images1[imgNum];
 		}
-		//cvRectangle(curImage,cvPoint(0,50),cvPoint(600,150), cvScalar(255,255,255), 30);
+		//cvRectangle(curImage,cvPoint(0,50),cvPoint(600,100), cvScalar(255,255,255), 40);
 		//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
-		if( curImage )
+		if( &curImage ){
+			if(normalD != 0 ){
+				moved = true;
+				int xs = normalD * 1280 * zoom;//.1;
+				int ys = normalD * 1024 * zoom;//.1;
+				tmpImg = cvCreateImage(cvSize(1280 + xs,1024 + ys),8,3);
+				cvResize(curImage, tmpImg, 1);
+				cvReleaseImage(&curImage);
+				curImage = cvCloneImage(tmpImg);
+				cvSetImageROI(curImage, cvRect(xs/2, ys/2, 1280, 1024));
+				cvReleaseImage(&tmpImg);
+			}
+			if( moved) {
+				double alpha = 0;
+				double beta = 1;
+				float step = 1.0 / loop;
+				for(int i = 0; i < loop; i++){
+					cvAddWeighted(curImage, alpha, lastImage, beta, 0.0, alphaImg);
+					alpha += step;
+					beta -= step;
+					cvShowImage("image", alphaImg);
+				}
+			}
 			cvShowImage("image", curImage);
+		}
 	}
 }
 
