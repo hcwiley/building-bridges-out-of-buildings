@@ -216,10 +216,12 @@ void CSkeletalViewerApp::Nui_UnInit( )
     }
     m_DrawDepth.DestroyDevice( );
     m_DrawVideo.DestroyDevice( );
-	cvDestroyWindow("image");
+	cvDestroyWindow("building bridges out of buildings");
 	for(int i =0; i < numImages; i++){
 		cvReleaseImage(&images1[i]);
 		cvReleaseImage(&images2[i]);
+		cvReleaseImage(&images3[i]);
+		cvReleaseImage(&images4[i]);
 	}
 	//cvReleaseImage(&tmpImg);
 	cvReleaseImage(&alphaImg);
@@ -228,6 +230,8 @@ void CSkeletalViewerApp::Nui_UnInit( )
 }
 
 void CSkeletalViewerApp::myInit(){
+	cvNamedWindow("building bridges out of buildings", CV_WINDOW_FULLSCREEN);
+	initDone = false;
 	imgNum = 1;
 	person.present = 0;
 	person.left = -1;
@@ -236,7 +240,6 @@ void CSkeletalViewerApp::myInit(){
 	alphaImg = cvCreateImage(cvSize(1280,1024),8,3);
 	lastImage = cvCreateImage(cvSize(1280,1024),8,3);
 	//tmpImg = cvCreateImage(cvSize(1280,1024),8,3);
-	cvNamedWindow("image", CV_WINDOW_FULLSCREEN | CV_GUI_NORMAL);
 	*images1 = new IplImage[numImages];
 	*images2 = new IplImage[numImages];
 	*images3 = new IplImage[numImages];
@@ -261,8 +264,9 @@ void CSkeletalViewerApp::myInit(){
 	}
 	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 1);
 	curImage = cvCloneImage(images1[0]);
-	cvShowImage("image",curImage);
+	cvShowImage("building bridges out of buildings",curImage);
 	//curImage = images1[0];
+	initDone = true;
 	changeImage();
 }
 
@@ -277,7 +281,6 @@ DWORD WINAPI CSkeletalViewerApp::Nui_ProcessThread(LPVOID pParam)
     hEvents[1]=pthis->m_hNextDepthFrameEvent;
     hEvents[2]=pthis->m_hNextVideoFrameEvent;
     hEvents[3]=pthis->m_hNextSkeletonEvent;
-
     // Main thread loop
     while(1)
     {
@@ -320,7 +323,10 @@ DWORD WINAPI CSkeletalViewerApp::Nui_ProcessThread(LPVOID pParam)
         // Process signal events
         switch(nEventIdx)
         {
-            case 1:
+			case 1:
+				if(pthis->checkKill()){
+					return (0);
+				}
                 pthis->Nui_GotDepthAlert();
                 pthis->m_FramesTotal++;
                 break;
@@ -336,6 +342,20 @@ DWORD WINAPI CSkeletalViewerApp::Nui_ProcessThread(LPVOID pParam)
     }
 
     return (0);
+}
+
+bool CSkeletalViewerApp::checkKill(){
+	if(initDone){
+		try
+		{
+			cvGetWindowName(cvGetWindowHandle("building bridges out of buildings"));
+		}
+		catch (...)
+		{
+			destroyer();
+		}
+	}
+	return false;
 }
 
 void CSkeletalViewerApp::Nui_GotVideoAlert( ){
@@ -426,10 +446,8 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
 		person.top = -1;
 		person.bottom = -1;
 
-		int c = cvWaitKey(10);
-
-		if(c == 27)
-			cvDestroyWindow("image");
+		//int c = cvWaitKey(10); //<-- this will block for 10 ms
+		//if(c == 27)
 
         m_DrawDepth.DrawFrame( (BYTE*) m_rgbWk );
     }
@@ -547,10 +565,10 @@ void CSkeletalViewerApp::changeImage(){
 					cvAddWeighted(curImage, alpha, lastImage, beta, 0.0, alphaImg);
 					alpha += step;
 					beta -= step;
-					cvShowImage("image", alphaImg);
+					cvShowImage("building bridges out of buildings", alphaImg);
 				}
 			}
-			cvShowImage("image", curImage);
+			cvShowImage("building bridges out of buildings", curImage);
 		}
 	}
 }

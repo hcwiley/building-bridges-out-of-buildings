@@ -35,7 +35,8 @@ public:
     void                    Nui_DrawSkeletonSegment( NUI_SKELETON_DATA * pSkel, int numJoints, ... );
 	void					changeImage();
 	void					myInit();
-
+	bool					checkKill();
+	void					destroyer();
     RGBQUAD                 Nui_ShortToQuad_Depth( USHORT s );
 
     static LONG CALLBACK    WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -120,9 +121,10 @@ private:
     int           m_LastFramesTotal;
 	int imgNum;
 	char imagePath[20];
-	static const int numImages = 20;
+	static const int numImages = 100;
 	int dir;
 	int gotPerson;
+	bool initDone;
 	PERSON person;
 	IplImage* images1[numImages];
 	IplImage* images2[numImages];

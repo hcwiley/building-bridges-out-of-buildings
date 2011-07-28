@@ -57,7 +57,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPTSTR lpCmdL
 	g_hWndApp=CreateDialogParam(g_hInst,MAKEINTRESOURCE(IDD_APP),NULL,(DLGPROC) CSkeletalViewerApp::WndProc,NULL);
 
 	// Show window
-	//ShowWindow(g_hWndApp,nCmdShow);
+	ShowWindow(g_hWndApp,nCmdShow);
 	//UpdateWindow(g_hWndApp);
 
 	// Main message loop:
@@ -107,20 +107,19 @@ LONG CALLBACK CSkeletalViewerApp::WndProc(HWND hWnd, UINT message, WPARAM wParam
 			break;
 
 		case WM_DESTROY:
-			// Uninitialize NUI
-			g_CSkeletalViewerApp.Nui_UnInit();
-
-			// Other cleanup
-			DeleteObject(g_CSkeletalViewerApp.m_hFontFPS);
-
-			// Quit the main message pump
-			PostQuitMessage(0);
+			g_CSkeletalViewerApp.destroyer();
 			break;
 	}
 	return (FALSE);
 }
 
+void CSkeletalViewerApp::destroyer(){
+	// Uninitialize NUI
+	g_CSkeletalViewerApp.Nui_UnInit();
 
+	// Quit the main message pump
+	PostQuitMessage(0);
+}
 
 /*****************************************************************************/
 /* int MessageBoxResourceV(HWND hwnd,UINT nID,UINT nType, ... )
