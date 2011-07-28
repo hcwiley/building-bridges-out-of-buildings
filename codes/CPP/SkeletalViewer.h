@@ -120,8 +120,8 @@ private:
     int           m_LastFramesTotal;
 	int imgNum;
 	char imagePath[20];
-	static const int numImages = 5;
-	double normalX;
+	static const int numImages = 20;
+	int dir;
 	int gotPerson;
 	PERSON person;
 	IplImage* images1[numImages];

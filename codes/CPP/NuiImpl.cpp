@@ -229,7 +229,6 @@ void CSkeletalViewerApp::Nui_UnInit( )
 
 void CSkeletalViewerApp::myInit(){
 	imgNum = 1;
-	normalX = 0.0;
 	person.present = 0;
 	person.left = -1;
 	person.right = -1;
@@ -418,18 +417,8 @@ void CSkeletalViewerApp::Nui_GotDepthAlert( )
 			//cvRectangle(curImage,cvPoint(0,0),cvPoint(600,200), cvScalar(255,255,255), 30);
 			//cvPutText(curImage, text,cvPoint(100,100),&font,cvScalar(0,0,255));
 			if(abs(person.x()  - 160) > 40)
-				normalX += double(double(person.x()  - 160)/90);
+				dir = int((160 - person.x()) / 40);
 				changeImage();
-			/*
-			if(person.left < 80 || person.right < 80){
-				normalX -= 0.2;
-				changeImage(-1);
-			}
-			if(person.right > 270 || person.left > 270){
-				normalX += 0.2;
-				changeImage(1);
-			}
-			*/
 		}
 		person.present = -1;
 		person.left = -1;
@@ -489,12 +478,10 @@ void CSkeletalViewerApp::changeImage(){
 		cvReleaseImage(&lastImage);
 		lastImage = cvCloneImage(curImage);
 		time(&imageTimer);
-		int dir = 0;
 		int loop = 8;
 		double zoom = 0.1;
-		if( abs(normalX) >= 1.0 ){
+		if( abs(dir) >= 1.0 ){
 			loop = 5;
-			dir = -1*int(abs(normalX)/normalX);
 			if(dir + imgNum >= numImages){
 				imgNum = 0;
 			}
@@ -503,7 +490,7 @@ void CSkeletalViewerApp::changeImage(){
 			}
 			else
 				imgNum += dir;
-			normalX = 0.0;
+			dir = 0.0;
 		}
 		sprintf(text, "distance: %f",person.distance);
 		float normalD = 0.0;
